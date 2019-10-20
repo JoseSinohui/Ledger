@@ -2,6 +2,7 @@
 import sys
 import re
 import datetime
+import collections
 
 datePattern = re.compile(r"\d{4}/\d{1,2}/\d{1,2}")
 
@@ -27,7 +28,7 @@ def handleFile(filePath, transactions):
                 handleFile(line.split()[1], transactions)
                 continue
 
-            print(line)
+            # print(line)
             if datePattern.search(line):
                 transaction = Transaction()
                 transaction.postings = []
@@ -61,7 +62,7 @@ def handleFile(filePath, transactions):
                         amount = float(amountStr.split(" ")[0])
                         currency = amountStr.split(" ")[1]
                     else:
-                        currency = defaultCurrency
+                        currency = transaction.postings[0].currency
 
                 if amount == 0:
                     amount = transaction.postings[0].amount
@@ -102,10 +103,81 @@ def register(transactions, *regexes):
             if(all(value == 0 for value in currencies.values())):
                 print("0")
 
-# def balance(transactions, *regexes):
+class Tree():
+    pass
 
+class Node():
+    def __init__(self, name):
+        self.childNodes = []
+        self.currenciesBalance = collections.defaultdict(lambda: 0)
+        self.name = name
+        self.amount = 0
+    
+
+def printNode(node, patterns):
+    # Print balances
+    for i, (curr, amnt) in enumerate(node.currenciesBalance.items()):
+        endString = '' if i==len(node.currenciesBalance) - 1 else '\n'
+        if amnt != 0:
+            print(str(amnt) + curr, end=endString)
+    line = ""
+    if len(node.childNodes) == 1:
+        print(node.name + ":" + node.childNodes[0].name)
+    else:
+        print(node.name)
+        for childNode in node.childNodes:
+            printNode(childNode, patterns)
+    
+
+def balance(transactions, *regexes):
+    patterns = [re.compile(regex, re.IGNORECASE) for regex in regexes]
+    tree = Tree()
+    currentNode = Node("root")
+    tree.root = currentNode
+
+    for tr in transactions:
+        for posting in tr.postings:
+
+            if not any(pattern.search(posting.account) for pattern in patterns):
+                continue
+
+            currentNode.currenciesBalance[posting.currency] += posting.amount # <- updates root
+
+            for i, account in enumerate(posting.account.split(":")):
+                # check for existing node in childs of currentNode
+                nextNode = None
+                for childNode in currentNode.childNodes:
+                    if childNode.name == account:
+                        nextNode = childNode
+                        break
+                
+                # Update currentNode
+                if nextNode:
+                    currentNode = nextNode
+                else:
+                    newNode = Node(account)
+                    currentNode.childNodes.append(newNode)
+                    currentNode = newNode
+
+                # Update the balance of the node
+                currentNode.currenciesBalance[posting.currency] += posting.amount
+            
+            # reset to root
+            currentNode = tree.root
+
+    # Sort by name for default
+    tree.root.childNodes = sorted(tree.root.childNodes, key=lambda node: node.name)
+
+    
+    for x in tree.root.childNodes:
+        printNode(x, patterns)
+
+    print("--------------------")
+
+    for currency, amount in tree.root.currenciesBalance.items():
+        print(str(amount) + currency)
+    
 transactions = []
 filePath = sys.argv[1]
 handleFile(filePath, transactions)
-
-register(transactions, "paypal", "exp")
+balance(transactions, "")
