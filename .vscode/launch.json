@@ -5,11 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Ledger bal command",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
-            "args": ["index.ledger"],
+            "program": "${fileDirname}/ledger.py",
+            "args": ["-f","index.ledger", "--price-db", "prices_db", "bal"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Ledger reg command",
+            "type": "python",
+            "request": "launch",
+            "program": "${fileDirname}/ledger.py",
+            "args": ["-f","index.ledger", "--price-db", "prices_db", "reg", "work"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Ledger print command",
+            "type": "python",
+            "request": "launch",
+            "program": "${fileDirname}/ledger.py",
+            "args": ["-f","index.ledger", "--price-db", "prices_db", "print"],
             "console": "integratedTerminal"
         }
     ]

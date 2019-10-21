@@ -3,6 +3,8 @@ import sys
 import re
 import datetime
 import collections
+import argparse
+import os
 
 datePattern = re.compile(r"\d{4}/\d{1,2}/\d{1,2}")
 
@@ -17,7 +19,7 @@ class Posting():
     pass
 
 
-def handleFile(filePath, transactions):
+def handleFile(filePath, transactions, prnt):
     with open(filePath) as file:
         accounts = 0
         for line in file.readlines():
@@ -25,10 +27,10 @@ def handleFile(filePath, transactions):
                 continue
 
             if line.startswith("!include"):
-                handleFile(line.split()[1], transactions)
+                handleFile(line.split()[1], transactions, prnt)
                 continue
-
-            # print(line)
+            if prnt:
+                print(line)
             if datePattern.search(line):
                 transaction = Transaction()
                 transaction.postings = []
@@ -79,15 +81,19 @@ def handleFile(filePath, transactions):
 def register(transactions, *regexes):
     patterns = [re.compile(regex, re.IGNORECASE) for regex in regexes]
     currencies = {}
+    columns = os.popen('stty size', 'r').read().split()[1]
     for transaction in transactions:
         if not any(any(pattern.search(posting.account) for pattern in patterns) for posting in transaction.postings):
             continue
+
         print(str(transaction.date) + " " + transaction.description, end='\t')
+
         for posting in transaction.postings:
             if not any(pattern.search(posting.account) for pattern in patterns):
                 continue
-            print(posting.account, end="\t")
-            print(str(posting.amount) + posting.currency, end="\t")
+            print(posting.account, end= "\t")
+            print(str(posting.amount) + " " + posting.currency)
+            print("\tBalances:")
 
             # Apply operation
             if posting.currency not in currencies:
@@ -98,10 +104,11 @@ def register(transactions, *regexes):
             # Print balances
             for curr, amnt in currencies.items():
                 if amnt != 0:
-                    print(str(amnt) + curr)
+                    print("\t\t" + (str(amnt) +" "+ curr))
 
             if(all(value == 0 for value in currencies.values())):
-                print("0")
+                print("\t\t0")
+            print('')
 
 class Tree():
     pass
@@ -118,8 +125,7 @@ def printNode(node, patterns):
     # Print balances
     for i, (curr, amnt) in enumerate(node.currenciesBalance.items()):
         endString = '' if i==len(node.currenciesBalance) - 1 else '\n'
-        if amnt != 0:
-            print(str(amnt) + curr, end=endString)
+        print("\t{:.2f} {}\t".format(amnt, curr), end=endString)
     line = ""
     if len(node.childNodes) == 1:
         print(node.name + ":" + node.childNodes[0].name)
@@ -175,9 +181,31 @@ def balance(transactions, *regexes):
     print("--------------------")
 
     for currency, amount in tree.root.currenciesBalance.items():
-        print(str(amount) + currency)
+        print('\t{:.2f} {}'.format(amount, currency))
     
+
+bal_choices = ['b', 'bal', 'balance']
+reg_choices = ['r', 'reg', 'register']
+print_choices = ['print', 'p']
+choices = []
+choices.extend(bal_choices)
+choices.extend(reg_choices)
+choices.extend(print_choices)
+argparser = argparse.ArgumentParser()
+argparser.add_argument("command", help='Command to run (bal, reg, print)', choices=choices)
+argparser.add_argument("-f", "--file",help="Ledger file")
+argparser.add_argument("--price-db", help="Price DB File")
+argparser.add_argument("-s", "--sort", help="Sort (date, amount)", choices = ["d", "a"])
+argparser.add_argument("filters", help='Regexes to match', nargs='*')
+args = argparser.parse_args()
 transactions = []
-filePath = sys.argv[1]
-handleFile(filePath, transactions)
-balance(transactions, "")
+filePath = args.file
+handleFile(filePath, transactions, args.command in print_choices)
+
+if args.sort:
+    if args.sort == "d":
+        transactions.sort(key=lambda x: x.date)
+if args.command in bal_choices:
+    balance(transactions, '')
+elif args.command in reg_choices:
+    register(transactions, '')
