@@ -1,6 +1,6 @@
 # Simple ledger
 
-Simple python implementation of ledgercli made with python.
+Simple implementation of ledgercli made with python.
 
 ## Requirements
 
