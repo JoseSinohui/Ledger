@@ -207,6 +207,12 @@ if args.sort:
     if args.sort == "d":
         transactions.sort(key=lambda x: x.date)
 if args.command in bal_choices:
-    balance(transactions, '')
+    if args.filters:
+        balance(transactions, *args.filters)
+    else:
+        balance(transactions, '')
 elif args.command in reg_choices:
-    register(transactions, '')
+    if args.filters:
+        register(transactions, *args.filters)
+    else:
+        register(transactions, '')
