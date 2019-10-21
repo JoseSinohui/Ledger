@@ -46,6 +46,7 @@ def handleFile(filePath, transactions, prnt):
             if accounts >= 1:
                 posting = Posting()
                 transaction.postings.append(posting)
+                posting.transaction = transaction
                 line = line.strip()
 
                 splittedLine = [x.strip() for x in line.replace(
@@ -195,7 +196,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument("command", help='Command to run (bal, reg, print)', choices=choices)
 argparser.add_argument("-f", "--file",help="Ledger file")
 argparser.add_argument("--price-db", help="Price DB File")
-argparser.add_argument("-s", "--sort", help="Sort (date, amount)", choices = ["d", "a"])
+argparser.add_argument("-s", "--sort", help="Sort (date, amount)", choices = ["d"])
 argparser.add_argument("filters", help='Regexes to match', nargs='*')
 args = argparser.parse_args()
 transactions = []
